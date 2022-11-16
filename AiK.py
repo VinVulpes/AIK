@@ -1,6 +1,24 @@
 '''
 docstring
 '''
+# TODO:
+# 'softmax',
+# 'softplus',
+# 'softsign',
+# 'tanh',
+# 'selu',
+# 'elu',
+# 'exponential',
+# 'relu',
+# 'sigmoid',
+
+# 1. Протестировать различные функции активации и кол-во нейронов
+# 2. Попробовать другие типы нейронных сетей (которые хорошо работают на малых данных)
+# 3. Написать Кейно и попросить БД побольше
+# 4. Убрать лишниие комментарии и print
+# 5. посмотреть какие слова оставляет
+# 6. рефакторинг кода
+# 2466/61 = 40.42
 from tensorflow import keras
 from keras.models import Model
 from keras.layers import Dense
@@ -211,82 +229,6 @@ history = model.fit(X_train, y_train,
 score = model.evaluate(X_test, y_test,
                        batch_size=32, verbose=1)
 
-#'''
-####################
-
-
-# from keras.models import Sequential
-# from keras.layers import Dense, Embedding, LSTM
-
-# epochs = 2
-# # максимальное количество слов для анализа
-# vocab_size = 4
-# max_features = vocab_size
-# maxSequenceLength = 3
-# print(u'Собираем модель...')
-# model = Sequential()
-# model.add(Embedding(max_features, maxSequenceLength))
-# model.add(LSTM(32, dropout=0.2, recurrent_dropout=0.2))
-# model.add(Dense(num_classes, activation='sigmoid'))
-
-# model.compile(loss='binary_crossentropy',
-#               optimizer='adam',
-#               metrics=['accuracy'])
-
-# print (model.summary())
-
-####################
-'''
-from keras.models import Sequential
-from keras.layers import Dense, Conv2D, Flatten
-# создание модели
-model = Sequential()
-# Добавляем слой
-model.add(Conv2D(64, kernel_size=1, activation='relu', input_shape=(num_words,)))
-# Второй сверточный слой
-model.add(Conv2D(32, kernel_size=1, activation='relu'))
-# Создаем вектор для полносвязной сети.
-model.add(Flatten())
-# Создадим однослойный перцептрон
-model.add(Dense(10, activation='softmax'))
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-#model.add(Conv2D(32, kernel_size=(3, 3),activation='relu',input_shape=X.shape[1:])) ???
-hist = model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=1)
-print(hist.history)
-'''
-
-####################
-'''
-from keras.models import Sequential
-from keras.layers import Dense, Embedding, Dropout, Conv1D, GlobalMaxPooling1D,Activation
-model = Sequential()
-max_features = 1
-maxSequenceLength = 20
-filters = 30
-kernel_size = 1
-hidden_dims = 30
-model.add(Embedding(max_features, maxSequenceLength))
-model.add(Dropout(0.2))
-#convlution layer 10
-model.add(Conv1D(filters,
-kernel_size,
-padding='valid',
-activation='relu', strides=1))
-# we use max pooling:
-model.add(GlobalMaxPooling1D())
-#hidden layer:
-model.add(Dense(hidden_dims))
-model.add(Dropout (0.2))
-model.add(Activation('relu'))
-#output Layer:
-model.add(Dense(2469))
-model.add(Activation('softmax'))
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-hist = model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=2)
-print(hist.history)
-#tf.reshape(data, [25, 25])
-'''
-####################
 print()
 print(f'Оценка теста: {score[0]}')
 print(f'Оценка точности модели: {score[1]}')
