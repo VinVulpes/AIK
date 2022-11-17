@@ -103,7 +103,8 @@ with open("theses_grnti.json",encoding='utf-8') as f:
         if values.get("grnti"):
             cntgrnti += 1
             # if values.get("grnti")[:2].isdigit() and values.get("grnti")[:2] in ['55','30','59','28','81','82','89','06']:
-            if values.get("grnti")[:2].isdigit() and values.get("grnti")[:2] in ['55','30','27','06','50','89','28']:
+            # if values.get("grnti")[:2].isdigit() and values.get("grnti")[:2] in ['55','30','27','06','50','89','28']:
+            if values.get("grnti")[:2].isdigit() and values.get("grnti")[:2] in ['55','30','89','06','50','27','28']:
                 texts.append(values['text'])
                 texts_grnti.append(values['grnti'][:2])
             assert len(texts) == len(texts_grnti)
@@ -119,7 +120,9 @@ with open("theses_grnti.json",encoding='utf-8') as f:
     # # print(json_dict[2])
     # # print(json_dict[2]["data"][0] as key, values)
 # print(f"Количество кодов: {cntgrnti}\nВсего: {cntall}")
-print("grnti: ", grnti) #
+srt = sorted(grnti,key=grnti.get,reverse=True)
+print("grnti: ", [val+":"+str(grnti[val]) for val in srt if val.isdigit()]) #
+
 for i,code in enumerate(texts_grnti):
     assert (len(code) == 2), code
     # # print(list(grnti)[i])
@@ -280,6 +283,7 @@ res = {}
 # print(res)
 
 
+# for i in ['relu','elu','softplus','tanh']:
 for i in ['relu','elu','softplus','tanh']:
     print(i)
     res[i] = nwtg(i)
