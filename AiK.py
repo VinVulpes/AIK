@@ -228,11 +228,21 @@ def nwtg(activation):
     # количество эпох\итераций для обучения
     epochs = 3
 
+    model = keras.Sequential([
+    # encoder,
+    keras.layers.Embedding(
+        input_dim=int(num_words/10),
+        output_dim=64,
+        # Use masking to handle the variable sequence lengths
+        mask_zero=True),
+    keras.layers.Bidirectional(keras.layers.LSTM(64)),
+    keras.layers.Dense(64, activation='relu'),
+    keras.layers.Dense(1)])
     # print('Собираем модель...')
-    model = Sequential()
+    # model = Sequential()
     # model =  Convolution3D() #Это вообще там хуета??
-    model.add(Dense(2000, input_shape=(num_words,)))
-    model.add(Dense(2000, input_shape=(num_words,)))
+    # model.add(Dense(2000, input_shape=(num_words,)))
+    # model.add(Dense(2000, input_shape=(num_words,)))
     # model.add(Dense(512, input_shape=(num_words,)))
     # model.add(Activation('relu'))
     # model.add(Embedding(1000, 150))
@@ -245,16 +255,26 @@ def nwtg(activation):
     model.add(Dense(total_categories))
     model.add(Activation('softmax'))
 
+    model.compile(loss=keras.losses.BinaryCrossentropy(from_logits=True),
+              optimizer=keras.optimizers.Adam(1e-4),
+              metrics=['accuracy'])
 
-    model.compile(loss='categorical_crossentropy',
-                optimizer='adam',
-                metrics=['accuracy'])
+    #model.compile(loss='categorical_crossentropy',
+    #            optimizer='adam',
+    #            metrics=['accuracy'])
+
 
     # print(model.summary())
-    history = model.fit(X_train, y_train,
-                        batch_size=32,
-                        epochs=epochs,
-                        verbose=1,)
+    history = model.fit(map(X_train,y_train), epochs=epochs,
+                    validation_data=map(X_train,y_train),
+                    validation_steps=30)
+    # '''
+    # history = model.fit(X_train, y_train,
+    #                     batch_size=32,
+    #                     epochs=epochs,
+    #                     verbose=1,)
+    # '''
+    
     score = model.evaluate(X_test, y_test,
                         batch_size=32, verbose=1)
 
