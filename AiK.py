@@ -147,69 +147,105 @@ if not texts2 or len(texts2) != len(texts):
 else:
     texts = texts2
 # print(len(texts))
-num_words = 2000
-tokenizer = Tokenizer(num_words=num_words, filters='!"#$%&amp;()*+,–-—./:;&lt;=>?@[\\]^_`{|}~\t\n\xa0', lower=True, split=' ', char_level=False)
+num_words = 4000
+
+##############################;
+
+
+from keras.preprocessing.text import Tokenizer
+from keras.utils.data_utils import pad_sequences
+# создаем единый словарь (слово -> число) для преобразования
+tokenizer = Tokenizer()
 tokenizer.fit_on_texts(texts)
-print("The document count",tokenizer.document_count)
-# print("The count of words",sorted(tokenizer.word_counts.items())[:100])
-# “”��«»
-# x_train_tokenized = tokenizer.texts_to_matrix(texts, mode='count')
-# x_train = pad_sequences(x_train_tokenized, maxlen=num_words)
-# # print(x_train_tokenized)
-# # print(x_train)
-cnt1=0
 
-for i in texts:
-    for j in i.split():
-        if len(j)<2:
-            cnt1+=1
-# print(texts[0].split())
-print("AAAAA ", cnt1)
-# print("ttxt ",texts[1])
 # Преобразуем все описания в числовые последовательности, заменяя слова на числа по словарю.
-textSequences = tokenizer.texts_to_sequences(texts)
-X_train, y_train, X_test, y_test = load_data_from_arrays(textSequences, texts_grnti, train_test_split=0.90)
-total_words = len(tokenizer.word_index)
-with open("words",'w',encoding='utf-8') as f:
-    json.dump(tokenizer.word_index,f)
-# print(f'В словаре {total_words} слов')
+# textSequences = tokenizer.texts_to_sequences(texts)
 
-# количество наиболее часто используемых слов
-# num_words = 500
+X_train, y_train, X_test, y_test = load_data_from_arrays(texts, texts_grnti, train_test_split=0.9)
+# X_train, y_train, X_test, y_test = load_data_from_arrays(textSequences, texts_grnti, train_test_split=0.9)
+# Максимальное количество слов в самом длинном описании заявки
+max_words = 0
+for desc in texts:
+    words = len(desc.split())
+    if words > max_words:
+        max_words = words
+print('Максимальное количество слов в самом длинном описании заявки: {} слов'.format(max_words))
 
-# print(u'Преобразуем описания заявок в векторы чисел...')
-tokenizer = Tokenizer(num_words=num_words)
-X_train = tokenizer.sequences_to_matrix(X_train, mode='binary')
-X_test = tokenizer.sequences_to_matrix(X_test, mode='binary')
-# print('Размерность X_train:', X_train.shape)
-# print('Размерность X_test:', X_test.shape)
+total_unique_words = len(tokenizer.word_counts)
+print('Всего уникальных слов в словаре: {}'.format(total_unique_words))
 
+maxSequenceLength = max_words
+
+vocab_size = round(total_unique_words/10)
+
+
+
+
+print(u'Преобразуем описания заявок в векторы чисел...')
+tokenizer = Tokenizer(num_words=vocab_size)
+tokenizer.fit_on_texts(texts)
+
+X_train = tokenizer.texts_to_sequences(X_train)
+X_test = tokenizer.texts_to_sequences(X_test)
+
+X_train = pad_sequences(X_train, maxlen=maxSequenceLength)
+X_test = pad_sequences(X_test, maxlen=maxSequenceLength)
 
 import numpy as np
-import sklearn
 from sklearn.preprocessing import LabelEncoder
 
 encoder = LabelEncoder()
-encoder.fit(texts_grnti)
-for i, n in enumerate(y_test):
-    assert n in texts_grnti, n
+encoder.fit(y_train)
 y_train = encoder.transform(y_train)
 y_test = encoder.transform(y_test)
 
 num_classes = np.max(y_train) + 1
-# print('Количество категорий для классификации: {}'.format(num_classes))
-# total_categories = num_classes = np.max(y_train) + 1
-total_categories = num_classes
-# total_categories = num_classes = len(texts_grnti) + 1
+print('Количество категорий для классификации: {}'.format(num_classes))
 
 
-# print('Преобразуем категории в матрицу двоичных чисел ''(для использования categorical_crossentropy)')
+print('Размерность X_train:', X_train.shape)
+print('Размерность X_test:', X_test.shape)
+
+print(u'Преобразуем категории в матрицу двоичных чисел '
+      u'(для использования categorical_crossentropy)')
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
-# print('y_train shape:', y_train.shape)
-# print('y_test shape:', y_test.shape)
-
+print('y_train shape:', y_train.shape)
+print('y_test shape:', y_test.shape)
 ##################
+
+from keras.models import Sequential
+from keras.layers import Dense, Embedding, LSTM
+
+# максимальное количество слов для анализа
+max_features = vocab_size
+
+print(u'Собираем модель...')
+model = Sequential()
+model.add(Embedding(max_features, maxSequenceLength))
+model.add(LSTM(32, dropout=0.2, recurrent_dropout=0.2))
+model.add(Dense(num_classes, activation='sigmoid'))
+
+model.compile(loss='binary_crossentropy',
+              optimizer='adam',
+              metrics=['accuracy'])
+
+print (model.summary())
+
+batch_size = 32
+epochs = 3
+
+print(u'Тренируем модель...')
+history = model.fit(X_train, y_train,
+          batch_size=batch_size,
+          epochs=epochs,
+          validation_data=(X_test, y_test))
+
+score = model.evaluate(X_test, y_test,
+                       batch_size=batch_size, verbose=1)
+print()
+print(u'Оценка теста: {}'.format(score[0]))
+print(u'Оценка точности модели: {}'.format(score[1]))
 
 
 def nwtg(activation):
@@ -280,10 +316,10 @@ res = {}
 # print(res)
 
 
-for i in ['relu','elu','softplus','tanh']:
-    print(i)
-    res[i] = nwtg(i)
-print(res)
+# for i in ['relu','elu','softplus','tanh']:
+#     print(i)
+#     res[i] = nwtg(i)
+# print(res)
 
 # nwtg('softplus')
 # {'softmax': 0.23170731961727142, 'softplus': 0.5040650367736816, 'softsign': 0.39024388790130615, 'tanh': 0.5284552574157715, 'selu': 0.57317072153009143, 'elu': 0.47154471278190613, 'exponential': 0.4918699264526367, 'relu': 0.5406504273414612, 'sigmoid': 0.3943089544773102}
