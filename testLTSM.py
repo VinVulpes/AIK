@@ -72,11 +72,11 @@ print(y_test)
 # exit()
 # Define the Keras model
 model = Sequential()
-model.add(Embedding(num_distinct_words, 700, input_length=max_sequence_length))
+model.add(Embedding(num_distinct_words, 100, input_length=max_sequence_length))
 # model.add(Embedding(num_distinct_words, embedding_output_dims, input_length=max_sequence_length))
 # model.add(LSTM(60))
-model.add(LSTM(700))
-model.add(Dropout(0.3))
+model.add(Dropout(0.5))
+model.add(LSTM(100))
 model.add(Dense(total_categories, activation='softmax'))
 
 # Compile the model
