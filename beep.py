@@ -1,0 +1,1 @@
+exec('import winsound \nfrequency = 2500  \nduration = 1000  \nwinsound.Beep(frequency, duration)')
