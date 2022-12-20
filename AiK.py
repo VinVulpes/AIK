@@ -2,16 +2,7 @@
 docstring
 '''
 REBUILD = 0
-# TODO:
 
-
-# 1. Протестировать различные функции активации и кол-во нейронов
-# 2. Попробовать другие типы нейронных сетей (которые хорошо работают на малых данных)
-# 3. Написать попросить БД побольше
-# 4. Убрать лишниие комментарии и # print
-# 5. посмотреть какие слова оставляет
-# 6. рефакторинг кода
-# 2466/61 = 40.42
 from tensorflow import keras
 from keras.models import Model
 from keras.layers import Dense
@@ -24,6 +15,9 @@ import nltk
 import random
 import os
 import json
+import numpy as np
+import sklearn
+from sklearn.preprocessing import LabelEncoder
 
 
 def getfrom_file(filename):
@@ -32,7 +26,7 @@ def getfrom_file(filename):
             return json.load(f)
     else:
         return {}
-# Sp
+
 def load_data_from_arrays(strings, labels, train_test_split=0.9):
     data_size = len(strings)
     test_size = int(data_size - round(data_size * train_test_split))
@@ -67,7 +61,6 @@ def filter_stop_words(train_sentences, stop_words):
     for _, sentence in enumerate(train_sentences):
         # print([word for word in sentence.split() if len(word)>2])
         new_sent = ["".join(filter(str.isalpha, word)) for word in sentence.split() if ((word not in stop_words) and (len(word)>2))]
-        # new_sent = 
         # new_sent = ''.join([s for s in (new_sent) if s not in '!"#$%&amp;()*+,–-—./:;&lt;=>?@[\\]^_`{|}~\t\n\xa0']) 
         train_sentences2.append(' '.join(new_sent))
     # print(train_sentences2[0])
@@ -104,7 +97,8 @@ with open("theses_grnti.json",encoding='utf-8') as f:
             cntgrnti += 1
             # if values.get("grnti")[:2].isdigit() and values.get("grnti")[:2] in ['55','30','59','28','81','82','89','06']:
             # if values.get("grnti")[:2].isdigit() and values.get("grnti")[:2] in ['55','30','27','06','50','89','28']:
-            if values.get("grnti")[:2].isdigit() and values.get("grnti")[:2] in ['55','30','89','06','50','27','28']:
+            if values.get("grnti")[:2].isdigit() and values.get("grnti")[:2] in ['55','06','30','89','50','27','28']:
+            # if values.get("grnti")[:2].isdigit() and values.get("grnti")[:2] in ['55','30','89']:
                 texts.append(values['text'])
                 texts_grnti.append(values['grnti'][:2])
             assert len(texts) == len(texts_grnti)
@@ -121,11 +115,14 @@ with open("theses_grnti.json",encoding='utf-8') as f:
     # # print(json_dict[2]["data"][0] as key, values)
 # print(f"Количество кодов: {cntgrnti}\nВсего: {cntall}")
 srt = sorted(grnti,key=grnti.get,reverse=True)
-print("grnti: ", [val+":"+str(grnti[val]) for val in srt if val.isdigit()]) #
+print("ГРНТИ: ", [val+":"+str(grnti[val]) for val in srt if val.isdigit()]) #
+#srt = sorted(grnti,key=grnti.get,reverse=True)
+#print("grnti: ", [val+":"+str(grnti[val]) for val in srt]) #
 
 for i,code in enumerate(texts_grnti):
     assert (len(code) == 2), code
     # # print(list(grnti)[i])
+
 # 1. Токенизируем слова
 nltk.download('stopwords')
 # print("len txt:",len(texts))
@@ -150,12 +147,13 @@ if not texts2 or len(texts2) != len(texts):
 else:
     texts = texts2
 # print(len(texts))
-num_words = 2000
+# количество наиболее часто используемых слов
+# num_words = 500
+num_words = 3000
 tokenizer = Tokenizer(num_words=num_words, filters='!"#$%&amp;()*+,–-—./:;&lt;=>?@[\\]^_`{|}~\t\n\xa0', lower=True, split=' ', char_level=False)
 tokenizer.fit_on_texts(texts)
 print("The document count",tokenizer.document_count)
 # print("The count of words",sorted(tokenizer.word_counts.items())[:100])
-# “”��«»
 # x_train_tokenized = tokenizer.texts_to_matrix(texts, mode='count')
 # x_train = pad_sequences(x_train_tokenized, maxlen=num_words)
 # # print(x_train_tokenized)
@@ -166,9 +164,7 @@ for i in texts:
     for j in i.split():
         if len(j)<2:
             cnt1+=1
-# print(texts[0].split())
-print("AAAAA ", cnt1)
-# print("ttxt ",texts[1])
+
 # Преобразуем все описания в числовые последовательности, заменяя слова на числа по словарю.
 textSequences = tokenizer.texts_to_sequences(texts)
 X_train, y_train, X_test, y_test = load_data_from_arrays(textSequences, texts_grnti, train_test_split=0.90)
@@ -176,21 +172,12 @@ total_words = len(tokenizer.word_index)
 with open("words",'w',encoding='utf-8') as f:
     json.dump(tokenizer.word_index,f)
 # print(f'В словаре {total_words} слов')
-
-# количество наиболее часто используемых слов
-# num_words = 500
-
 # print(u'Преобразуем описания заявок в векторы чисел...')
 tokenizer = Tokenizer(num_words=num_words)
 X_train = tokenizer.sequences_to_matrix(X_train, mode='binary')
 X_test = tokenizer.sequences_to_matrix(X_test, mode='binary')
 # print('Размерность X_train:', X_train.shape)
 # print('Размерность X_test:', X_test.shape)
-
-
-import numpy as np
-import sklearn
-from sklearn.preprocessing import LabelEncoder
 
 encoder = LabelEncoder()
 encoder.fit(texts_grnti)
@@ -212,9 +199,6 @@ y_test = keras.utils.to_categorical(y_test, num_classes)
 # print('y_train shape:', y_train.shape)
 # print('y_test shape:', y_test.shape)
 
-##################
-
-
 def nwtg(activation):
     #'''
     from keras.models import Sequential
@@ -226,23 +210,13 @@ def nwtg(activation):
     from keras.layers import Embedding
 
     # количество эпох\итераций для обучения
-    epochs = 3
+    epochs = 5
 
-    model = keras.Sequential([
-    # encoder,
-    keras.layers.Embedding(
-        input_dim=int(num_words/10),
-        output_dim=64,
-        # Use masking to handle the variable sequence lengths
-        mask_zero=True),
-    keras.layers.Bidirectional(keras.layers.LSTM(64)),
-    keras.layers.Dense(64, activation='relu'),
-    keras.layers.Dense(1)])
     # print('Собираем модель...')
-    # model = Sequential()
-    # model =  Convolution3D() #Это вообще там хуета??
-    # model.add(Dense(2000, input_shape=(num_words,)))
-    # model.add(Dense(2000, input_shape=(num_words,)))
+    model = Sequential()
+    # model =  Convolution3D() 
+    model.add(Dense(2000, input_shape=(num_words,)))
+    model.add(Dense(2000, input_shape=(num_words,)))
     # model.add(Dense(512, input_shape=(num_words,)))
     # model.add(Activation('relu'))
     # model.add(Embedding(1000, 150))
@@ -255,26 +229,16 @@ def nwtg(activation):
     model.add(Dense(total_categories))
     model.add(Activation('softmax'))
 
-    model.compile(loss=keras.losses.BinaryCrossentropy(from_logits=True),
-              optimizer=keras.optimizers.Adam(1e-4),
-              metrics=['accuracy'])
 
-    #model.compile(loss='categorical_crossentropy',
-    #            optimizer='adam',
-    #            metrics=['accuracy'])
-
+    model.compile(loss='categorical_crossentropy',
+                optimizer='adam',
+                metrics=['accuracy'])
 
     # print(model.summary())
-    history = model.fit(map(X_train,y_train), epochs=epochs,
-                    validation_data=map(X_train,y_train),
-                    validation_steps=30)
-    # '''
-    # history = model.fit(X_train, y_train,
-    #                     batch_size=32,
-    #                     epochs=epochs,
-    #                     verbose=1,)
-    # '''
-    
+    history = model.fit(X_train, y_train,
+                        batch_size=32,
+                        epochs=epochs,
+                        verbose=1,)
     score = model.evaluate(X_test, y_test,
                         batch_size=32, verbose=1)
 
@@ -297,12 +261,9 @@ res = {}
 #     res[i] = nwtg(i)
 # print(res)
 
+# for i in ['relu','elu','softplus','tanh']: 
+#     print(i)
+#     res[i] = nwtg(i)
+# print(res)
 
-# for i in ['relu','elu','softplus','tanh']:
-for i in ['relu','elu','softplus','tanh']:
-    print(i)
-    res[i] = nwtg(i)
-print(res)
-
-# nwtg('softplus')
-# {'softmax': 0.23170731961727142, 'softplus': 0.5040650367736816, 'softsign': 0.39024388790130615, 'tanh': 0.5284552574157715, 'selu': 0.57317072153009143, 'elu': 0.47154471278190613, 'exponential': 0.4918699264526367, 'relu': 0.5406504273414612, 'sigmoid': 0.3943089544773102}
+nwtg('softplus')
